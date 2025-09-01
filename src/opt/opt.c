@@ -159,12 +159,12 @@ __private char* opt_array(const char** arr){
 // adds an element to array linked list options
 __private optval_u* opt_value_new(option_s* opt) {
   // expand options' array
-	opt->value = realloc(opt->value, sizeof(optval_u) * opt->set + 1);
+	opt->value = realloc(opt->value, sizeof(optval_u) * (opt->set + 1));
   if(!opt->value) {
    strerror(errno);
    die("Memory error while expanding options array");
   }
-  return (opt->value)+opt->set;
+  return (opt->value)+(opt->set);
 }
 
 
@@ -213,25 +213,23 @@ __private void opt_value(optctx_s* ctx, unsigned id, const char* value){
 		--ctx->opt[id].set; // diciamo che l'opzione non è settata (0 parametri settati)
 		while( (v=opt_array(&value)) ){ // finchè ci sono valori in questo array
       // in base al valore si estrae e gestisce
-      printf("IN OPT_VALUE ARRAY SWITCH");
 			switch( ctx->opt[id].flags & OPT_TYPE ){
-        case OPT_STR : opt_value_new(ctx->opt)->str = value; printf("DEBUG: %s\n", value); dbgptr = value;  break;
-				case OPT_NUM : opt_value_new(ctx->opt)->i  = opt_parse_num(ctx, v); break;
-				case OPT_INUM: opt_value_new(ctx->opt)->ui  = opt_parse_inum(ctx, v); break;
-				case OPT_PATH: opt_value_new(ctx->opt)->str = opt_parse_path(ctx, (char*)v, ctx->opt[id].flags); break;
+        case OPT_STR : opt_value_new(ctx->opt+id)->str = str_dup(v, 0); break;
+				case OPT_NUM : opt_value_new(ctx->opt+id)->i  = opt_parse_num(ctx, v); break;
+				case OPT_INUM: opt_value_new(ctx->opt+id)->ui  = opt_parse_inum(ctx, v); break;
+				case OPT_PATH: opt_value_new(ctx->opt+id)->str = opt_parse_path(ctx, (char*)v, ctx->opt[id].flags); break;
 				default: die("internal error, unaspected option type, report this error"); break;
 			}
 			++ctx->opt[id].set;
-      puts("ARR FREEING");
 			free(v);
 		}
 	}
 	else{
 		switch( ctx->opt[id].flags & OPT_TYPE ){
-      case OPT_STR : ctx->opt->value->str = value; printf("DEBUG: %s\n", value); break;
-			case OPT_NUM : ctx->opt->value->i  = opt_parse_num(ctx, value); break;
-			case OPT_INUM: ctx->opt->value->ui  = opt_parse_inum(ctx, value); break;
-			case OPT_PATH: ctx->opt->value->str = opt_parse_path(ctx, (char*)value, ctx->opt[id].flags); break;
+      case OPT_STR : ctx->opt[id].value->str = value; break;
+			case OPT_NUM : ctx->opt[id].value->i  = opt_parse_num(ctx, value); break;
+			case OPT_INUM: ctx->opt[id].value->ui  = opt_parse_inum(ctx, value); break;
+			case OPT_PATH: ctx->opt[id].value->str = opt_parse_path(ctx, (char*)value, ctx->opt[id].flags); break;
 			default: die("internal error, unaspected option type, report this error"); break;
 		}
 	}
@@ -249,20 +247,20 @@ __private void add_to_option(optctx_s* ctx, int id, kv_s* kv){
   // se l'opzione in analisi deve ricevere un valore
 	if( (ctx->opt[id].flags & OPT_TYPE) != OPT_NOARG ){
 		char* v = NULL;
-    // se sto valore non c'è
+    // se si sta analizzando una short option, e quindi alla chiamata kv viene passato NULL
 		if( !kv || !*kv->value ){
-      // gestiamo l'errore
+      // controlliamo che dopo la short option attuale non ci sia un'altra opzione, in caso generiamo errore
 			next_is_nopt(ctx, ++ctx->current);
-      // nel caso in cui non ci sia un opzione valida, si mette come valore l'argomento current come valore dell'opzione stessa 
+      // se è tutto apposto, allora possiamo dire che l'argomento trovato dopo la short option è il suo valore
 			v = ctx->argv[ctx->current];
 		}
-		else{ // se invece il valore c'è tutto apposto
+		else{ // se invece viene già passata una struttura kv, vuol dire che stavamo parsando una long option(con l'=) e che quindi il suo valore l'abbiamo già estratto ed è in kv->value
 			v = kv->value;
 		}
     // impostiamo questo valore nell'array di opzioni
 		opt_value(ctx, id, v);
 	}
-  // se invece il valore non deve averlo e gli viene dato, errore comunque
+  // se invece l'opzione non vuole un valore ma la struttura kv è piena. vuol dire che gli è stato dato ed è quindi stato parsato, errore
 	else if( kv && *kv->value ){
 		opt_die(ctx, "optiont unaspected value");
 	}
@@ -275,7 +273,6 @@ __private void long_option(optctx_s* ctx){
 	kv_s kv;
 	kv_parse(&kv, ctx->argv[ctx->current]); // parsiamo l'opzione in nome e valore
 	add_to_option(ctx, find_long(ctx, kv.name), &kv);
-  puts("FREEING NAME");
 	free(kv.name);
   ++ctx->current;
 }
@@ -342,7 +339,12 @@ option_s* argv_dtor(option_s* opt){
 	if( !opt ) return NULL;
 	const unsigned count = opt_count(opt);
 	for( unsigned i = 0; i < count; ++i ){
-		if( opt[i].value ) free(opt[i].value);
+    if( opt[i].value ) {
+      if( opt[i].set && (opt[i].flags & OPT_ARRAY) && (opt[i].flags & OPT_STR) ) 
+        for(size_t j = 0; j < opt[i].set; j++)
+          free((char *)(opt[i].value[j]).str); 
+      free(opt[i].value);
+    }
 	}
 	return opt;
 }
@@ -399,9 +401,9 @@ void print_args(option_s *opt) {
       continue;
     }
     for(size_t k = 0; k < opt[i].set; k++) {
-      optval_u *curr_val = (opt[i].value)+k;
+      optval_u *curr_val = opt[i].value+k;
       switch(opt[i].flags & OPT_TYPE) {
-        case OPT_NOARG: puts("specified with no arg"); break;
+        case OPT_NOARG: printf("specified with no arg"); break;
         case OPT_STR: printf("%s ", curr_val->str); break;
         case OPT_NUM: printf("%lu ", curr_val->ui); break;
         case OPT_INUM: printf("%ld ", curr_val->i); break;
