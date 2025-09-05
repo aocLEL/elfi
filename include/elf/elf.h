@@ -36,8 +36,33 @@
 #define ELFDATA2MSB   0x2
 // elf version
 #define EV_NONE       0x0
+// current ELF version
 #define EV_CURRENT    0x1
 
+// ABI SPECIFIC EXTENSIONS
+#define ELFOSABI_NONE        0x00  /* No extensions or unspecified */
+#define ELFOSABI_HPUX        0x01  /* Hewlett-Packard HP-UX */
+#define ELFOSABI_NETBSD      0x02  /* NetBSD */
+#define ELFOSABI_GNU         0x03  /* GNU */
+#define ELFOSABI_LINUX       0x03  /* Linux (alias for ELFOSABI_GNU) */
+#define ELFOSABI_SOLARIS     0x06  /* Sun Solaris */
+#define ELFOSABI_AIX         0x07  /* AIX */
+#define ELFOSABI_IRIX        0x08  /* IRIX */
+#define ELFOSABI_FREEBSD     0x09  /* FreeBSD */
+#define ELFOSABI_TRU64       0x0A  /* Compaq TRU64 UNIX */
+#define ELFOSABI_MODESTO     0x0B  /* Novell Modesto */
+#define ELFOSABI_OPENBSD     0x0C  /* OpenBSD */
+#define ELFOSABI_OPENVMS     0x0D  /* OpenVMS */
+#define ELFOSABI_NSK         0x0E  /* Hewlett-Packard Non-Stop Kernel */
+#define ELFOSABI_AROS        0x0F  /* Amiga Research OS */
+#define ELFOSABI_FENIXOS     0x10  /* FenixOS scalable multi-core OS */
+#define ELFOSABI_CLOUDABI    0x11  /* Nuxi CloudABI */
+#define ELFOSABI_OPENVOS     0x12  /* Stratus Technologies OpenVOS */
+
+// 64-255 --> Arch specific (depends on e_machine value)
+
+// ABI VERSION
+#define ABIVERSION_UNSPECIFIED  0x0
 // e_ident struct
 
 typedef struct {
@@ -48,7 +73,8 @@ typedef struct {
   const Elf_Byte EI_CLASS;
   const Elf_Byte EI_DATA;
   const Elf_Byte EI_VERSION; // must be equal to EV_CURRENT for current ELF header format, That's the ELF header version number
-
+  const Elf_Byte EI_OSABI; // specifies the abi used by target os
+  const Elf_Byte EI_ABIVERSION; // version of abi, ABIVERSION_UNSPECIFIED if not specified or unspecified abi
 } e_ident_s;
 // see https://www.sco.com/developers/gabi/latest/ch4.eheader.html for exact behaviour of each field
 typedef struct {
