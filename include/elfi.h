@@ -1,6 +1,8 @@
 #ifndef __ELFI_H__
 #define __ELFI_H__
 
+// https://www.sco.com/developers/gabi/latest/ch4.eheader.html#elfid
+
 // opt ascii indexes in the opt array
 typedef enum{
 	O_a,
