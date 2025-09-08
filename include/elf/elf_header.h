@@ -277,7 +277,7 @@ typedef struct {
   const elf_osabi_e   EI_OSABI; // specifies the abi used by target os
   const Elf_Byte      EI_ABIVERSION; // version of abi, ABIVERSION_UNSPECIFIED if not specified or unspecified abi
   const Elf_Byte      EI_PAD[7]; // padding bytes for future uses
-} e_ident_s;
+} __attribute__((packed)) e_ident_s;
 
 
 
@@ -300,15 +300,15 @@ typedef struct {
         const Elf32_Half          e_shentsize; // same as phentsize but for section header table
         const Elf32_Half          e_shnum; // same as phnum but for section header table, if bigger than SHN_LORESERVE, 0 and actual number is located at index 0 of section header(sh_size)
         const Elf32_Half          e_shstrndx; // index, in the section header table, of section associated with section name string table
-} Elf32_Ehdr;
+} __attribute__((packed)) Elf32_Ehdr;
 
 
 // 64 BIT -------------
 
 typedef struct {
         const e_ident_s       e_ident;
-        const Elf64_Half      e_type;
-        const Elf64_Half      e_machine;
+        const elf_filetype_e  e_type;
+        const elf_machine_e   e_machine;
         const Elf64_Word      e_version;
         const Elf64_Addr      e_entry;
         const Elf64_Off       e_phoff;
@@ -320,6 +320,6 @@ typedef struct {
         const Elf64_Half      e_shentsize;
         const Elf64_Half      e_shnum;
         const Elf64_Half      e_shstrndx;
-} Elf64_Ehdr;
+} __attribute__((packed)) Elf64_Ehdr;
 
 #endif

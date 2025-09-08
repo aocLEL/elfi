@@ -74,13 +74,13 @@ typedef struct {
 	Elf32_Word	  sh_info;
 	Elf32_Word	  sh_addralign;
 	Elf32_Word	  sh_entsize;
-} Elf32_Shdr;
+} __attribute__((packed)) Elf32_Shdr;
 
 typedef struct {
 	elf_cmpalg_e	ch_type; // compression alghorithm
 	Elf32_Word	  ch_size; // size of uncompressed data
 	Elf32_Word	  ch_addralign; // required alignment for uncompressed data
-} Elf32_Chdr;
+} __attribute__((packed)) Elf32_Chdr;
 
 
 // 64 bit entry of section header table
@@ -95,14 +95,14 @@ typedef struct {
 	Elf64_Word	  sh_info;
 	Elf64_Xword	  sh_addralign;
 	Elf64_Xword	  sh_entsize;
-} Elf64_Shdr;
+} __attribute__((packed)) Elf64_Shdr;
 
 typedef struct {
 	elf_cmpalg_e	ch_type;
 	Elf64_Word	  ch_reserved;
 	Elf64_Xword	  ch_size;
 	Elf64_Xword	  ch_addralign;
-} Elf64_Chdr;
+} __attribute__((packed)) Elf64_Chdr;
 
 
 #endif

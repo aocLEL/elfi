@@ -10,7 +10,7 @@ PROD_FLAGS = -DVERSION_STR="\"0.0.1\"" \
 							-DDBG_ENABLE=1
 TEST_FLAGS = -DDBG_ENABLE=1 \
 						 -DVERSION_STR="\"0.0.1_t\""
-TEST_EN = 0
+TEST_EN = 1
 CARGS := $(CSTD) $(CFLAGS) $(if $(filter 1, $(TEST_EN)), $(TEST_FLAGS),$(PROD_FLAGS))
 INCLUDE_DIRS = include/
 CCMD := $(CC) $(CARGS) -I$(INCLUDE_DIRS)
@@ -20,9 +20,10 @@ SRC = elfi.c \
 			opt/opt.c \
 			utility/utils.c
 			
-TEST_SRC = test.c \
+TEST_SRC = elfi.c \
 					 opt/opt.c\
-					 utility/utils.c
+					 utility/utils.c\
+           elf/elf.c
 #SRC := $(patstub %.c,src/%.c,$(SRC))
 # for each file in SRC or TEST_SRC, create the corrisponding object file in build
 OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,\

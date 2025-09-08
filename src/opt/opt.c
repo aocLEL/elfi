@@ -294,7 +294,7 @@ __private void short_option(optctx_s* ctx){
 }
 
 // fills the available options array with actually user specified options
-option_s* argv_parse(option_s* opt, int argc, char** argv) {
+option_s* argv_parse(option_s* opt, int argc, char** argv, char **files) {
   const unsigned copt = opt_count(opt);
   optctx_s ctx = {
 		.argc      = argc,
@@ -325,10 +325,9 @@ option_s* argv_parse(option_s* opt, int argc, char** argv) {
 				short_option(&ctx);
 			}
 		}
-    // if no dashes at all, it's a long option
-		else{
-			long_option(&ctx);
-		}
+    // if no dashes at all it's a file
+		else 
+      *(files++) = str_dup(argv[ctx.current++], 0);
 	}
 
 	return opt;
