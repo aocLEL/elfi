@@ -48,12 +48,13 @@ int main(int argc, char **argv) {
   elf_parse(files, e_files);
   // rember to  free single files in elf_parse and elf_s array at the end
   // free_str_list for both e_files and files
-  free(e_files);
-  free(files);
+  free_str_list(files, FILE_MAX);
+  free_elf_list(e_files, FILE_MAX);
   return 0;
 }
 
 
 // TODO
-// finire di parsare header
-// continuare con il resto del file e sistemare opzioni e funzionalità relative
+// implementare eventuali altre opts dell'elf header
+// iniziare parsing section header
+// ricordarsi per ogni nuova parte dell elf parsata di cambiare le free

@@ -10,3 +10,8 @@ char *str_dup(const char *src, size_t len) {
   return buff;
 }
 
+void free_str_list(char **list, size_t len) {
+  for(size_t i = 0; i < len; i++)
+    free(list[i]);
+  free(list);
+}
