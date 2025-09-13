@@ -1,6 +1,8 @@
 #ifndef __ELF_COMMON_H__
 #define __ELF_COMMON_H__
 
+#include <stdint.h>
+
 // common types
 #define Elf_Byte    unsigned char
 // 32 bit types
@@ -32,7 +34,28 @@
 #define SHN_XINDEX    0xffff
 #define SHN_HIRESERVE 0xffff
 
+// elf class
+typedef enum : Elf_Byte {
+  ELFCLASSNONE,
+  ELFCLASS32,
+  ELFCLASS64
+} elf_class_e;
 
+
+// ELF file struct
+#define Elf_Ehdr void
+#define Elf_Shdr void
+#define Elf_Phdr void
+
+typedef struct {
+  char            *name;
+  Elf_Ehdr        *header;
+  Elf_Shdr        *sht; 
+  uint64_t        sh_num;
+  Elf_Phdr        *pht;
+  elf_class_e     type;
+  void            *sections;
+} elf_s;
 
 
 #endif

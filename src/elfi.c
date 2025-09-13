@@ -5,6 +5,7 @@
 #include <opt.h>
 #include <utility/utils.h>
 #include <error/error.h>
+#include <errno.h>
 
 elf_s  **elf_parse(char **files, elf_s **e_files) {
     // for each file
@@ -18,14 +19,34 @@ elf_s  **elf_parse(char **files, elf_s **e_files) {
       }
     }
     e_files[k]->name = files[i];
+    FILE *fd = fopen(e_files[k]->name, "r");
+    if(!fd) {
+      fprintf(stderr, "Cannot open file %s: %s\n", e_files[k]->name, strerror(errno));
+      return NULL;
+    }
     // return 0 if cannot find valid elf header(file cannot be considered as elf)
-    void *is_elf = extract_header(e_files[k]);
-    if(!is_elf)
+    if(!extract_header(e_files[k], fd)) {
+      fclose(fd);
       continue;
-    print_header_info(e_files[k]);
+    }
+    // continue with section table, remember to adjust section header string table index after that
+    if(!extract_sht(e_files[k], fd)) {
+      fclose(fd);
+      continue;
+    }
     k++;
+    fclose(fd);
   }
   return e_files;
+}
+
+
+
+void  opt_exec(const option_s *opt, elf_s **e_files) {
+  for(size_t i = 0; i < FILE_MAX && e_files[i]; i++) {
+    if(opt[O_h].set) print_header_info(e_files[i]);
+    if(opt[O_S].set) print_sht(e_files[i]);
+  }
 }
 
 int main(int argc, char **argv) {
@@ -35,7 +56,7 @@ int main(int argc, char **argv) {
     die("Memory allocation error, try again!!");
   }
   __argv option_s* opt = argv_parse(PROG_OPT, argc, argv, files); // NOLINT
-	if( opt[O_h].set ) argv_usage(opt, argv[0]);
+	if( opt[O_H].set ) argv_usage(opt, argv[0]);
   if(!*files) {
     puts("No files given!! try again");
     exit(EXIT_FAILURE);
@@ -46,6 +67,7 @@ int main(int argc, char **argv) {
   }
   memset(e_files, 0x0, sizeof(elf_s*) * FILE_MAX);
   elf_parse(files, e_files);
+  opt_exec(opt, e_files);
   // rember to  free single files in elf_parse and elf_s array at the end
   // free_str_list for both e_files and files
   free_str_list(files, FILE_MAX);

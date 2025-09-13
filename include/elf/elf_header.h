@@ -13,14 +13,6 @@
 #define ELFMAG2       0x4c
 #define ELFMAG3       0x46
 
-
-// elf class
-typedef enum : Elf_Byte {
-  ELFCLASSNONE,
-  ELFCLASS32,
-  ELFCLASS64
-} elf_class_e;
-
 // elf data
 typedef enum : Elf_Byte {
   ELFDATANONE,
@@ -321,5 +313,6 @@ typedef struct {
         const Elf64_Half      e_shnum;
         const Elf64_Half      e_shstrndx;
 } __attribute__((packed)) Elf64_Ehdr;
+
 
 #endif

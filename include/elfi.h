@@ -8,6 +8,7 @@
 // AVAILABLE OPTS
 option_s PROG_OPT[] = {
 	{'h', "--file-header"    , "Displays the information contained in the ELF header"               , OPT_NOARG          , 0, 0}, 
+  {'S', "--sections"       , "Display section header table with all entries"                      , OPT_NOARG          , 0, 0},
 	{'H', "--help"           , "display this"                                                       , OPT_END | OPT_NOARG, 0, 0}
 };
 
@@ -17,11 +18,12 @@ option_s PROG_OPT[] = {
 // opt ascii indexes in the opt array
 typedef enum{
 	O_h,
+  O_S,
 	O_H
 }OPT_E;
 
 
 // elf functions
 elf_s **elf_parse(char **files, elf_s **e_files);
-
+void  opt_exec(const option_s *opt, elf_s **e_files);
 #endif

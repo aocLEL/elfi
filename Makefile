@@ -23,7 +23,10 @@ SRC = elfi.c \
 TEST_SRC = elfi.c \
 					 opt/opt.c\
 					 utility/utils.c\
-           elf/elf.c
+           elf/elf.c\
+           elf/elf_utils.c\
+           elf/elf32.c\
+           elf/elf64.c
 #SRC := $(patstub %.c,src/%.c,$(SRC))
 # for each file in SRC or TEST_SRC, create the corrisponding object file in build
 OBJS := $(patsubst %.c,$(BUILD_DIR)/%.o,\
