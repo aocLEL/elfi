@@ -34,6 +34,8 @@ elf_s  **elf_parse(char **files, elf_s **e_files) {
       fclose(fd);
       continue;
     }
+    // strtb extraction
+    extract_strtb(e_files[k], fd);
     k++;
     fclose(fd);
   }

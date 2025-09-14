@@ -10,6 +10,7 @@
 
 
 elf_s *extract_sht64(elf_s *e_file, FILE *fd);
+elf_s *extract_strtb64(elf_s *e_file, FILE *fd);
 
 
 // option functions

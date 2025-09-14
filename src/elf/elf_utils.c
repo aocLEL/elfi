@@ -3,6 +3,7 @@
 #include <string.h>
 #include <errno.h>
 #include <error/error.h>
+#include <elf/elf_common.h>
 #include <elf/elf_utils.h>
 
 
@@ -91,6 +92,93 @@ int read_hdr(int mode, elf_s *f, FILE *fd) {
 
 unsigned int iself(const e_ident_s *ident) {
   return (ident->EI_MAG0 == ELFMAG0 && ident->EI_MAG1 == ELFMAG1 && ident->EI_MAG2 == ELFMAG2 && ident->EI_MAG3 == ELFMAG3);
+}
+
+
+
+
+
+const char *sht_name(char *buff, const char *name) {
+  if(strlen(name) > SHT_FIELD_WIDTH)
+    sprintf(buff, "%.*s[...]", SHT_FIELD_WIDTH - 5, name);
+  else
+    sprintf(buff, "%s", name);
+  return buff;
+}
+
+
+
+
+const char *sht_type(elf_shtype_e type) {
+  switch(type) {
+        case SHT_NULL:
+            return "NULL";
+        case SHT_PROGBITS:
+            return "PROGBITS";
+        case SHT_SYMTAB:
+            return "SYMTAB";
+        case SHT_STRTAB:
+            return "STRTAB";
+        case SHT_RELA:
+            return "RELA";
+        case SHT_HASH:
+            return "HASH";
+        case SHT_DYNAMIC:
+            return "DYNAMIC";
+        case SHT_NOTE:
+            return "NOTE";
+        case SHT_NOBITS:
+            return "NOBITS";
+        case SHT_REL:
+            return "REL";
+        case SHT_SHLIB:
+            return "SHLIB";
+        case SHT_DYNSYM:
+            return "DYNSYM";
+        case SHT_INIT_ARRAY:
+            return "INIT_ARRAY";
+        case SHT_FINI_ARRAY:
+            return "FINI_ARRAY";
+        case SHT_PREINIT_ARRAY:
+            return "PREINIT_ARRAY";
+        case SHT_GROUP:
+            return "GROUP";
+        case SHT_SYMTAB_SHNDX:
+            return "SYMTAB_SHNDX";
+        case SHT_LOOS:
+            return "LOOS";
+        case SHT_HIOS:
+            return "HIOS";
+        case SHT_LOPROC:
+            return "LOPROC";
+        case SHT_HIPROC:
+            return "HIPROC";
+        case SHT_LOUSER:
+            return "LOUSER";
+        case SHT_HIUSER:
+            return "HIUSER";
+        default:
+            return "UNKNOWN";
+  }
+}
+
+
+const char *sht_flags(char *buff, size_t flags) {
+  if(flags & SHF_WRITE)               *buff++ = 'W';
+  if(flags & SHF_ALLOC)               *buff++ = 'A';
+  if(flags & SHF_EXECINSTR)           *buff++ = 'X';
+  if(flags & SHF_MERGE)               *buff++ = 'M';
+  if(flags & SHF_STRINGS)             *buff++ = 'S';
+  if(flags & SHF_INFO_LINK)           *buff++ = 'I';
+  if(flags & SHF_LINK_ORDER)          *buff++ = 'L';
+  if(flags & SHF_OS_NONCONFORMING)    *buff++ = 'O';
+  if(flags & SHF_GROUP)               *buff++ = 'G';
+  if(flags & SHF_TLS)                 *buff++ = 'T';
+  if(flags & SHF_COMPRESSED)          *buff++ = 'C';
+  if(flags & SHF_MASKOS)              *buff++ = 'o';
+  if(flags & SHF_MASKPROC)            *buff++ = 'p';
+  *buff = 0;
+  return buff;
 }
 
 

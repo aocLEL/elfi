@@ -5,6 +5,7 @@
 #include <string.h>
 #include <elf/elf.h>
 #include <elf/elf_utils.h>
+#include <utility/utils.h>
 #include <elf/elf32.h>
 #include <elf/elf64.h>
 #include <error/error.h>
@@ -48,15 +49,29 @@ elf_s *extract_sht(elf_s *e_file, FILE *fd) {
   // take shoff and shentsize from the header
   // check shnum, if >= loreserve than read only the first entry and take the total section number, otherwise read all the table
   // continue here, test new structure before
-  elf_s *retval;
   if(e_file->type == ELFCLASS64) 
-    retval = extract_sht64(e_file, fd);
+    return extract_sht64(e_file, fd);
   else
-    retval = extract_sht32(e_file, fd);
-  return retval;
+    return extract_sht32(e_file, fd);
 }
 
 
+
+// fetch a symbol/section name from string table
+elf_s *extract_strtb(elf_s *e_file, FILE *fd) {
+  // emtpy string if no string table
+  if(e_file->type == ELFCLASS64)
+    return extract_strtb64(e_file, fd);
+  else
+    return extract_strtb32(e_file, fd);
+}
+
+// return a reference
+const Elf_Byte  *get_from_strtb(const elf_s *e_file, size_t index) {
+  if(!e_file->strtb)
+    return NULL;
+  return (const Elf_Byte*)e_file->strtb+index;
+}
 
 
 void print_header_info(const elf_s *e_file) {
@@ -88,6 +103,7 @@ void free_elf_list(elf_s **list, size_t len) {
   for(size_t i = 0; i < len && list[i]; i++) {
     free(list[i]->header);
     free(list[i]->sht);
+    // unmmap is automatically done at program termination
     free(list[i]);
   }
   free(list);

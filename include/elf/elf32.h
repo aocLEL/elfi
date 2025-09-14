@@ -10,6 +10,8 @@
 
 
 elf_s *extract_sht32(elf_s *e_file, FILE *fd);
+elf_s *extract_strtb32(elf_s *e_file, FILE *fd);
+
 
 // option functions
 void  print_header_info32(const elf_s *e_file);

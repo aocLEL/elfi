@@ -1,10 +1,18 @@
 #include <stdlib.h>
+#include <sys/mman.h>
 #include <errno.h>
 #include <string.h>
 #include <elf/elf64.h>
 #include <stdio.h>
 #include <elf/elf_utils.h>
 #include <error/error.h>
+#include <utility/utils.h>
+
+
+#define PAGE_SIZE sysconf(_SC_PAGE_SIZE)
+#define __private static
+
+extern const Elf_Byte  *get_from_strtb(const elf_s *e_file, size_t index);
 
 
 elf_s *extract_sht64(elf_s *e_file, FILE *fd) {
@@ -36,6 +44,33 @@ err:
   fprintf(stderr, "Cannot read section table of %s(maybe corrupted): %s, skipping it...\n", e_file->name, strerror(errno));
   return NULL;
 }
+
+
+
+
+
+elf_s *extract_strtb64(elf_s *e_file, FILE *fd) {
+  // get string table header index in section headers table
+  const Elf64_Ehdr *hdr = e_file->header;
+  const Elf64_Shdr *sht = e_file->sht;
+  // if is bigger than loreserve, take it from section 0 sh_link field
+  size_t strtbi = hdr->e_shstrndx >= SHN_LORESERVE ? sht[0].sh_link : hdr->e_shstrndx; 
+  // read entire string table on memory
+  if(!sht[strtbi].sh_size) {
+    fprintf(stderr, "File %s has no string table, indexes will be used!!", e_file->name);
+    e_file->strtb = NULL;
+    return NULL;
+  }
+  size_t page_align_diff = sht[strtbi].sh_offset - ((size_t)(sht[strtbi].sh_offset / PAGE_SIZE) * PAGE_SIZE);
+  printf("PAGE: %zu\n", PAGE_SIZE);
+  printf("PAGE ALIGN: %zu\n", sht[strtbi].sh_offset - page_align_diff);
+  e_file->strtb = mmap(NULL, (sht[strtbi].sh_size + page_align_diff) * sizeof(Elf_Byte), PROT_READ, MAP_PRIVATE, fileno(fd), sht[strtbi].sh_offset - page_align_diff);
+  e_file->strtb = e_file->strtb + page_align_diff;
+  if(e_file->strtb == MAP_FAILED)
+    die("!!!STRING TABLE MAPPING ERROR: %s", strerror(errno));
+  return e_file; 
+}
+
 
 
 void  print_header_info64(const elf_s *e_file) {
@@ -74,12 +109,47 @@ void  print_header_info64(const elf_s *e_file) {
 }
 
 
+__private void print_section(const elf_s *e_file, const Elf64_Shdr *s, size_t index) {
+  // print table header
+  if(!s) {
+    char buff[32] = "[Nr]";
+    center_string(buff, SHT_FIELD_WIDTH / 2);
+    printf(SHT_FMT, buff, "Name", "Size", "Type", "EntSize", "Address", "Flags    Link    Info", "Offset", "Align");
+    return;
+  }  
+  char fields[9][BUFF_LEN - 128];
+  sprintf(fields[0], "[%zu]", index);
+  center_string(fields[0], SHT_FIELD_WIDTH / 2);
+  sht_name(fields[1], (const char *)get_from_strtb(e_file, s->sh_name));
+  sprintf(fields[2], "%.*lu", SHT_FIELD_WIDTH, s->sh_size);
+  sprintf(fields[3], "%s", sht_type(s->sh_type));
+  sprintf(fields[4], "%.*lu", SHT_FIELD_WIDTH, s->sh_entsize);
+  sprintf(fields[5], "%.*lx", SHT_FIELD_WIDTH, s->sh_addr);
+  unsigned int dim = (SHT_FIELD_WIDTH - 6) / 3 + 1;
+  char flags[dim], link[dim], info[dim];
+  sht_flags(flags, s->sh_flags);
+  sprintf(link, "%d",  s->sh_link);
+  sprintf(info, "%d",  s->sh_info);
+  center_string(flags, dim);
+  center_string(link, dim);
+  center_string(info, dim);
+  sprintf(fields[6], "%-*s   %-*s   %-*s", dim, flags, dim, link, dim, info);
+  sprintf(fields[7], "%.*lu", SHT_FIELD_WIDTH/2, s->sh_offset);
+  char buff[SHT_FIELD_WIDTH/2+1];
+  sprintf(buff, "%lu", s->sh_addralign);
+  center_string(buff, SHT_FIELD_WIDTH/2);
+  sprintf(fields[8], "%-*s",  SHT_FIELD_WIDTH/2, buff); 
+  printf(SHT_FMT, fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7], fields[8]);
+}
 
 void  print_sht64(const elf_s *e_file) {
   Elf64_Ehdr *hdr = e_file->header;
-  //Elf64_Shdr *sht = e_file->sht;
+  Elf64_Shdr *sht = e_file->sht;
   printf("There are %lu sections headers, starting at offset 0x%lx\n", e_file->sh_num, hdr->e_shoff);
   puts("Section Headers:");
+  print_section(e_file, NULL, 0);
+  for(size_t i = 0; i < e_file->sh_num; i++)
+    print_section((const elf_s*)e_file, &sht[i], i);
 }
 
 

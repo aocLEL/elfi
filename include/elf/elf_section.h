@@ -42,7 +42,7 @@ typedef enum : uint32_t {
   SHT_INIT_ARRAY      = 14,
   SHT_FINI_ARRAY,
   SHT_PREINIT_ARRAY,
-  STH_GROUP,
+  SHT_GROUP,
   SHT_SYMTAB_SHNDX,
   SHT_LOOS            = 0x60000000,
   SHT_HIOS            = 0x6fffffff,

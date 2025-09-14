@@ -3,11 +3,13 @@
 
 #include <stdio.h>
 #include "elf_header.h"
+#include "elf_section.h"
 
 
-#define HDR_FMT   "%-40s%-30s\n"
-#define SHT_FMT   "%-15s%-30s%-30s%-30s%-15s\n"
-#define BUFF_LEN  256
+#define HDR_FMT         "%-40s%-30s\n"
+#define SHT_FMT         "%-15s%-20s%-20s\t%-20s\t%-20s\t%-20s\t%-25s\t%-10s\t%-10s\n"
+#define SHT_FIELD_WIDTH 20
+#define BUFF_LEN        256
 
 // ELF header utilities
 const char    *elf_osabi_name(elf_osabi_e osabi);
@@ -17,6 +19,10 @@ char          *elf_entry_point(unsigned long long addr, char *buff);
 char          *elf_shstrndx(unsigned short index, char *buff);
 unsigned int  iself(const e_ident_s *ident);
 int           read_hdr(int mode, elf_s *f, FILE *fd);
+// ELF section header utilities
+const char    *sht_name(char *buff, const char *name);
+const char    *sht_type(elf_shtype_e type);
+const char    *sht_flags(char *buff, size_t flags);
 
 
 

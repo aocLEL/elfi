@@ -52,6 +52,7 @@ typedef struct {
   Elf_Ehdr        *header;
   Elf_Shdr        *sht; 
   uint64_t        sh_num;
+  Elf_Byte        *strtb;
   Elf_Phdr        *pht;
   elf_class_e     type;
   void            *sections;
