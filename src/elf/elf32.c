@@ -10,10 +10,9 @@
 
 #define PAGE_SIZE sysconf(_SC_PAGE_SIZE)
 
-extern const Elf_Byte  *get_from_strtb(const elf_s *e_file, size_t index);
 
 
-elf_s *extract_sht32(elf_s *e_file, FILE *fd) {
+elf_s *extract_sht32(elf_s *e_file) {
   Elf32_Ehdr *hdr       = (Elf32_Ehdr*)e_file->header;
   Elf32_Off  shoff      = hdr->e_shoff;
   Elf32_Half shentsize  = hdr->e_shentsize;
@@ -26,16 +25,16 @@ elf_s *extract_sht32(elf_s *e_file, FILE *fd) {
   if(e_file->sh_num == SHN_UNDEF) {
     // read first section header to get actual section header number
     Elf32_Shdr s;
-    fseek(fd, shoff, SEEK_SET);
-    if(fread(&s, sizeof(Elf32_Shdr), 1, fd) < 1)
+    fseek(e_file->fd, shoff, SEEK_SET);
+    if(fread(&s, sizeof(Elf32_Shdr), 1, e_file->fd) < 1)
       goto err;
     e_file->sh_num = s.sh_size;
   }
   e_file->sht = malloc(sizeof(Elf32_Shdr) * e_file->sh_num);
   if(!e_file->sht)
     die("Memory allocation failed, try again!!");
-  fseek(fd, shoff, SEEK_SET);
-  if(fread(e_file->sht, shentsize, e_file->sh_num, fd) < e_file->sh_num) 
+  fseek(e_file->fd, shoff, SEEK_SET);
+  if(fread(e_file->sht, shentsize, e_file->sh_num, e_file->fd) < e_file->sh_num) 
     goto err;
   return e_file;
 err:
@@ -44,26 +43,50 @@ err:
 }
 
 
-
-elf_s *extract_strtb32(elf_s *e_file, FILE *fd) {
-  // get string table header index in section headers table
-  const Elf32_Ehdr *hdr = e_file->header;
-  const Elf32_Shdr *sht = e_file->sht;
-  // if is bigger than loreserve, take it from section 0 sh_link field
-  size_t strtbi = hdr->e_shstrndx >= SHN_LORESERVE ? sht[0].sh_link : hdr->e_shstrndx; 
-  // read entire string table on memory
-  if(!sht[strtbi].sh_size) {
-    fprintf(stderr, "File %s has no string table, indexes will be used!!", e_file->name);
-    e_file->strtb = NULL;
-    return NULL;
+const elf_s *extract_symtbs32(elf_s *e_file) {
+  // scan sht to find SYM sections, and populate symtbs arr
+  Elf32_Sym **symtbs = (Elf32_Sym**)e_file->symtbs;
+  symtbs = malloc(sizeof(Elf32_Sym*) * SYMTB_MAX);
+  if(!symtbs)
+    die("Memory allocation failed: %s", strerror(errno));
+  size_t k = 0;
+  for(size_t i = 0; i < e_file->sh_num; i++) {
+    Elf32_Shdr *s = &e_file->sht[i];
+    if(s->sh_type == SHT_SYMTAB || s->sh_type == SHT_DYNSYM) {
+      // read string table
+      symtbs[k] = malloc(s->sh_size);
+      if(!symtbs[k])
+        die("Memory allocation failed: %s", strerror(errno));
+      fseek(e_file->fd, s->sh_offset * sizeof(Elf_Byte), SEEK_SET);
+      if(fread(symtbs[k], s->sh_size, 1, e_file->fd) < 1) {
+        fprintf(stderr, "Error while extracting sym tables from %s, skipping it...\n", e_file->name);
+        return NULL;
+      }
+      k++;
+    }
   }
-  size_t page_align_diff = sht[strtbi].sh_offset - ((size_t)(sht[strtbi].sh_offset / PAGE_SIZE) * PAGE_SIZE);
-  e_file->strtb = mmap(NULL, (sht[strtbi].sh_size + page_align_diff) * sizeof(Elf_Byte), PROT_READ, 0, fileno(fd), sht[strtbi].sh_offset - page_align_diff);
-  e_file->strtb = e_file->strtb + page_align_diff;
-  if(e_file->strtb == MAP_FAILED)
-    die("!!!STRING TABLE MAPPING ERROR: %s", strerror(errno));
-  return e_file; 
+  return e_file;
 }
+
+
+const Elf_Byte *get_from_strtb32(const elf_s *e_file, const Elf32_Shdr *s, size_t index) {
+  // empty string table for that section
+  if(!s->sh_size) {
+    return (const Elf_Byte*)"NOSTRTB";
+  }
+  Elf_Byte *buff = malloc(sizeof(Elf_Byte) * BUFF_LEN + 1);
+  if(!buff)
+    die("Memory allocation failed: %s", strerror(errno));
+  fseek(e_file->fd, s->sh_offset + (index * sizeof(Elf_Byte)), SEEK_SET);
+  if(fread(buff, sizeof(Elf_Byte), BUFF_LEN, e_file->fd) < BUFF_LEN) {
+    if(!feof(e_file->fd))
+      die("Error while reading from file: %s", strerror(errno));
+  }
+  buff[BUFF_LEN] = 0;
+  // needs to be freed after use
+  return buff;
+}
+
 
 
 void  print_header_info32(const elf_s *e_file) {
@@ -117,7 +140,7 @@ __private void print_section(const elf_s *e_file, const Elf32_Shdr *s, size_t in
   char fields[9][BUFF_LEN - 128];
   sprintf(fields[0], "[%zu]", index);
   center_string(fields[0], SHT_FIELD_WIDTH / 2);
-  sht_name(fields[1], (const char *)get_from_strtb(e_file, s->sh_name));
+  sht_name(fields[1], (char *)get_from_strtb32(e_file, &((const Elf32_Shdr*)e_file->sht)[elf_shtstrtb(e_file)], s->sh_name));
   sprintf(fields[2], "%.*u", SHT_FIELD_WIDTH, s->sh_size);
   sprintf(fields[3], "%s", sht_type(s->sh_type));
   sprintf(fields[4], "%.*u", SHT_FIELD_WIDTH, s->sh_entsize);

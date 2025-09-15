@@ -7,6 +7,8 @@
 #include <error/error.h>
 #include <errno.h>
 
+// remember to handle section groups
+
 elf_s  **elf_parse(char **files, elf_s **e_files) {
     // for each file
   size_t k = 0;
@@ -19,25 +21,26 @@ elf_s  **elf_parse(char **files, elf_s **e_files) {
       }
     }
     e_files[k]->name = files[i];
-    FILE *fd = fopen(e_files[k]->name, "r");
-    if(!fd) {
+    e_files[k]->fd = fopen(e_files[k]->name, "r");
+    if(!e_files[k]->fd) {
       fprintf(stderr, "Cannot open file %s: %s\n", e_files[k]->name, strerror(errno));
       return NULL;
     }
     // return 0 if cannot find valid elf header(file cannot be considered as elf)
-    if(!extract_header(e_files[k], fd)) {
-      fclose(fd);
+    if(!extract_header(e_files[k])) {
+      fclose(e_files[k]->fd);
       continue;
     }
     // continue with section table, remember to adjust section header string table index after that
-    if(!extract_sht(e_files[k], fd)) {
-      fclose(fd);
+    if(!extract_sht(e_files[k])) {
+      fclose(e_files[k]->fd);
       continue;
     }
-    // strtb extraction
-    extract_strtb(e_files[k], fd);
+    // symtbs extraction
+    if(!extract_symtbs(e_files[k])) {
+      fclose(e_files[k]->fd);
+    }
     k++;
-    fclose(fd);
   }
   return e_files;
 }

@@ -75,15 +75,15 @@ char *elf_shstrndx(unsigned short index, char *buff) {
 
 
 // positive for 32, 0 for 64
-int read_hdr(int mode, elf_s *f, FILE *fd) {
+int read_hdr(int mode, elf_s *f) {
   size_t hsize = mode ? sizeof(Elf32_Ehdr) : sizeof(Elf64_Ehdr);
   f->header = malloc(hsize);
   if(!f->header) {
     die("Memory allocation failed, try again!!");
   }
   f->type = mode ? ELFCLASS32 : ELFCLASS64;
-  fseek(fd, 0, SEEK_SET);
-  if(fread(f->header, hsize, 1, fd) < 1){
+  fseek(f->fd, 0, SEEK_SET);
+  if(fread(f->header, hsize, 1, f->fd) < 1){
     fprintf(stderr, "Cannot read file %s: %s\n", f->name, strerror(errno));
     return 0;
   }
@@ -98,12 +98,25 @@ unsigned int iself(const e_ident_s *ident) {
 
 
 
-const char *sht_name(char *buff, const char *name) {
+const char *sht_name(char *buff, char *name) {
   if(strlen(name) > SHT_FIELD_WIDTH)
     sprintf(buff, "%.*s[...]", SHT_FIELD_WIDTH - 5, name);
   else
     sprintf(buff, "%s", name);
+  free(name);
   return buff;
+}
+
+size_t elf_shtstrtb(const elf_s *e_file) {
+  if(e_file->type == ELFCLASS64) {
+    Elf64_Ehdr *hdr = e_file->header;
+    Elf64_Shdr *sht = e_file->sht;
+    return hdr->e_shstrndx >= SHN_LORESERVE ? sht[0].sh_link : hdr->e_shstrndx; 
+  }
+  Elf32_Ehdr *hdr = e_file->header;
+  Elf32_Shdr *sht = e_file->sht;
+  return hdr->e_shstrndx >= SHN_LORESERVE ? sht[0].sh_link : hdr->e_shstrndx; 
+
 }
 
 

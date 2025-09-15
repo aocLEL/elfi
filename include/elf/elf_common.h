@@ -2,6 +2,7 @@
 #define __ELF_COMMON_H__
 
 #include <stdint.h>
+#include <stdio.h>
 
 // common types
 #define Elf_Byte    unsigned char
@@ -46,16 +47,17 @@ typedef enum : Elf_Byte {
 #define Elf_Ehdr void
 #define Elf_Shdr void
 #define Elf_Phdr void
+#define Elf_Sym  void
 
 typedef struct {
   char            *name;
+  FILE            *fd;
   Elf_Ehdr        *header;
   Elf_Shdr        *sht; 
   uint64_t        sh_num;
-  Elf_Byte        *strtb;
   Elf_Phdr        *pht;
   elf_class_e     type;
-  void            *sections;
+  Elf_Sym         **symtbs;
 } elf_s;
 
 

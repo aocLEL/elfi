@@ -18,9 +18,10 @@ const char    *elf_machine_name(elf_machine_e machine);
 char          *elf_entry_point(unsigned long long addr, char *buff);
 char          *elf_shstrndx(unsigned short index, char *buff);
 unsigned int  iself(const e_ident_s *ident);
-int           read_hdr(int mode, elf_s *f, FILE *fd);
+int           read_hdr(int mode, elf_s *f);
 // ELF section header utilities
-const char    *sht_name(char *buff, const char *name);
+size_t        elf_shtstrtb(const elf_s *e_file);
+const char    *sht_name(char *buff, char *name);
 const char    *sht_type(elf_shtype_e type);
 const char    *sht_flags(char *buff, size_t flags);
 
