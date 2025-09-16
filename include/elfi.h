@@ -9,6 +9,7 @@
 option_s PROG_OPT[] = {
 	{'h', "--file-header"    , "Displays the information contained in the ELF header"               , OPT_NOARG          , 0, 0}, 
   {'S', "--sections"       , "Display section header table with all entries"                      , OPT_NOARG          , 0, 0},
+  {'s', "--symbols"        , "Display every symbol table in the elf file"                         , OPT_NOARG          , 0, 0},
 	{'H', "--help"           , "display this"                                                       , OPT_END | OPT_NOARG, 0, 0}
 };
 
@@ -19,6 +20,7 @@ option_s PROG_OPT[] = {
 typedef enum{
 	O_h,
   O_S,
+  O_s,
 	O_H
 }OPT_E;
 

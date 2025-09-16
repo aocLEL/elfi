@@ -13,7 +13,7 @@
 
 #define __private static
 
-
+// modify the 32/64 split format with a struct containing function pointers which are set to 32/64 funcs in a per-file way during elfparse, then put this struct in elf_s
 
 
 
@@ -92,14 +92,22 @@ void print_sht(const elf_s *e_file) {
 }
 
 
+void print_symtbs(const elf_s *e_file) {
+  if(e_file->type == ELFCLASS64)
+    print_symtbs64(e_file);
+  else
+    print_symtbs32(e_file);
+}
+
+
 void free_elf_list(elf_s **list, size_t len) {
   // per ogni elf_s dobbiamo rilasciare intanto il suo header, poi dopo lo modifichi man mano che implementi il resto dell'elf
   for(size_t i = 0; i < len && list[i]; i++) {
     fclose(list[i]->fd); // closing file descriptor
     free(list[i]->header);
     free(list[i]->sht);
-    for(size_t k = 0; k < SYMTB_MAX && list[i]->symtbs[k]; k++)
-      free(list[i]->symtbs[k]);
+    for(size_t k = 0; k < SYMTB_MAX && list[i]->symtbs[k].entries; k++)
+      free(list[i]->symtbs[k].symbols);
     free(list[i]->symtbs);
     free(list[i]);
   }

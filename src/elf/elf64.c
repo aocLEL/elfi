@@ -69,26 +69,31 @@ const Elf_Byte *get_from_strtb64(const elf_s *e_file, const Elf64_Shdr *s, size_
 
 const elf_s *extract_symtbs64(elf_s *e_file) {
   // scan sht to find SYM sections, and populate symtbs arr
-  Elf64_Sym **symtbs = (Elf64_Sym**)e_file->symtbs;
-  symtbs = malloc(sizeof(Elf64_Sym*) * SYMTB_MAX);
+  elf_symtb_s *symtbs = malloc(sizeof(elf_symtb_s) * SYMTB_MAX);
+  memset(symtbs, 0, sizeof(elf_symtb_s) * SYMTB_MAX);
   if(!symtbs)
     die("Memory allocation failed: %s", strerror(errno));
   size_t k = 0;
   for(size_t i = 0; i < e_file->sh_num; i++) {
-    Elf64_Shdr *s = &e_file->sht[i];
+    Elf64_Shdr *s = &((Elf64_Shdr*)e_file->sht)[i];
     if(s->sh_type == SHT_SYMTAB || s->sh_type == SHT_DYNSYM) {
       // read string table
-      symtbs[k] = malloc(s->sh_size);
-      if(!symtbs[k])
+      // symbols pointer
+      symtbs[k].symtb_sidx = i;
+      symtbs[k].entries = s->sh_size / sizeof(Elf64_Sym);
+      Elf64_Sym *symbols = malloc(s->sh_size);
+      if(!symbols)
         die("Memory allocation failed: %s", strerror(errno));
       fseek(e_file->fd, s->sh_offset * sizeof(Elf_Byte), SEEK_SET);
-      if(fread(symtbs[k], s->sh_size, 1, e_file->fd) < 1) {
+      if(fread(symbols, s->sh_size, 1, e_file->fd) < 1) {
         fprintf(stderr, "Error while extracting sym tables from %s, skipping it...\n", e_file->name);
         return NULL;
       }
+      symtbs[k].symbols = symbols;
       k++;
     }
   }
+  e_file->symtbs = symtbs;
   return e_file;
 }
 
@@ -142,7 +147,7 @@ __private void print_section(const elf_s *e_file, const Elf64_Shdr *s, size_t in
   char fields[9][BUFF_LEN - 128];
   sprintf(fields[0], "[%zu]", index);
   center_string(fields[0], SHT_FIELD_WIDTH / 2);
-  sht_name(fields[1], (char *)get_from_strtb64(e_file, &((const Elf64_Shdr*)e_file->sht)[elf_shtstrtb(e_file)], s->sh_name));
+  trunc_name(fields[1], (char *)get_from_strtb64(e_file, &((const Elf64_Shdr*)e_file->sht)[elf_shtstrtb(e_file)], s->sh_name), SHT_FIELD_WIDTH - 5);
   sprintf(fields[2], "%.*lu", SHT_FIELD_WIDTH, s->sh_size);
   sprintf(fields[3], "%s", sht_type(s->sh_type));
   sprintf(fields[4], "%.*lu", SHT_FIELD_WIDTH, s->sh_entsize);
@@ -176,3 +181,67 @@ void  print_sht64(const elf_s *e_file) {
 
 
 
+
+__private void print_symbol(const elf_s *e_file, const Elf64_Sym *sym, size_t symtb_sidx, size_t index) {
+ Elf64_Shdr *sht = e_file->sht;
+ char fields[8][BUFF_LEN];
+ // Num
+ sprintf(fields[0], "%*zu:", SYM_FIELD_WIDTH - 6, index);
+ // Value
+ sprintf(fields[1], "%.*lx", SYM_FIELD_WIDTH - 6, sym->st_value);
+ // Size
+ sprintf(fields[2], "%*lu", SYM_FIELD_WIDTH - 17, sym->st_size);
+ // type
+ sprintf(fields[3], "%*s", SYM_FIELD_WIDTH - 14, elf_symtype(ELF64_ST_TYPE(sym->st_info)));
+ sprintf(fields[4], "%*s", SYM_FIELD_WIDTH - 15, elf_symbind(ELF64_ST_BIND(sym->st_info)));
+ sprintf(fields[5], "%*s", SYM_FIELD_WIDTH - 13, elf_symvis(ELF64_ST_VISIBILITY(sym->st_other)));
+ // symbol section index
+ switch(sym->st_shndx) {
+   case SHN_ABS:
+     sprintf(fields[6], "%*s", SYM_FIELD_WIDTH - 18, "ABS");
+     break;
+   case SHN_UNDEF:
+     sprintf(fields[6], "%*s", SYM_FIELD_WIDTH - 18, "UND");
+     break;
+   case SHN_XINDEX:
+     for(size_t i = 0; i < e_file->sh_num; i++) {
+       if(sht[i].sh_type == SHT_SYMTAB_SHNDX && sht[i].sh_link == symtb_sidx) {
+          fseek(e_file->fd, 0, SEEK_SET);
+          Elf32_Word *ext_indexes = malloc(sht[i].sh_size);
+          if(!ext_indexes)
+            die("Memory allocation error: %s", strerror(errno));
+          if(fread(ext_indexes, sht[i].sh_size, 1, e_file->fd) < 1) {
+            fprintf(stderr, "Cannot find section of symbol %lx, UNDEF is used!!\n", sym->st_value);
+            sprintf(fields[6], "%*s", SYM_FIELD_WIDTH - 18, "***"); 
+            break;
+          }
+          sprintf(fields[6], "%*u", SYM_FIELD_WIDTH - 18, ext_indexes[index]); 
+          break;
+       }
+     }
+     break;
+   default:
+     sprintf(fields[6], "%*hu", SYM_FIELD_WIDTH - 18, sym->st_shndx); 
+ }
+ char name[BUFF_LEN];
+ size_t symstrtbi  =  sht[symtb_sidx].sh_link; 
+ trunc_name(name, (char *)get_from_strtb64(e_file, &((const Elf64_Shdr*)e_file->sht)[symstrtbi], sym->st_name), SYM_FIELD_WIDTH - 5);
+ sprintf(fields[7], "%*s", SYM_FIELD_WIDTH, name);
+ printf(SYM_FMT, fields[0], fields[1], fields[2], fields[3], fields[4], fields[5], fields[6], fields[7]);
+}
+
+void print_symtbs64(const elf_s *e_file) {
+  Elf64_Shdr *sht = e_file->sht;
+  for(size_t i = 0; i < SYMTB_MAX && e_file->symtbs[i].entries; i++) {
+    size_t symtb_sidx = e_file->symtbs[i].symtb_sidx;
+    // get section name from section header table string table
+    unsigned char *symtb_name = (unsigned char *)get_from_strtb64(e_file, &((const Elf64_Shdr*)e_file->sht)[elf_shtstrtb(e_file)], sht[symtb_sidx].sh_name);
+    size_t entries = e_file->symtbs[i].entries;
+    printf("Symbol table \'%s\' contains %lu entries:\n", symtb_name, entries);
+    printf(SYM_FMT, "Num:", " Value", "Size", "Type", "Bind", "Vis", "Ndx", "Name");
+    for(size_t j = 0; j < entries; j++)
+      print_symbol(e_file, &((Elf64_Sym*)e_file->symtbs[i].symbols)[j], symtb_sidx, j);
+    printf("\n\n");
+    free(symtb_name);
+  }
+}

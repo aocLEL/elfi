@@ -24,7 +24,7 @@ typedef enum: Elf_Byte {
   STB_HIOS = 12,
   STB_LOPROC,
   STB_HIPROC = 15
-} sym_bind;
+} elf_sym_bind_e;
 
 typedef enum: Elf_Byte {
   STT_NOTYPE,
@@ -38,14 +38,15 @@ typedef enum: Elf_Byte {
   STT_HIOS = 12,
   STT_LOPROC,
   STT_HIPROC  = 15
-} sym_type;
+} elf_sym_type_e;
 
 typedef enum: Elf_Byte {
   STV_DEFAULT,
   STV_INTERNAL,
   STV_HIDDEN,
   STV_PROTECTED
-} sym_vis;
+} elf_sym_vis_e;
+
 
 // symbol table entry
 typedef struct {
@@ -65,6 +66,5 @@ typedef struct {
 	Elf64_Addr	st_value;
 	Elf64_Xword	st_size;
 } __attribute__((packed)) Elf64_Sym;
-
 
 #endif

@@ -51,6 +51,7 @@ void  opt_exec(const option_s *opt, elf_s **e_files) {
   for(size_t i = 0; i < FILE_MAX && e_files[i]; i++) {
     if(opt[O_h].set) print_header_info(e_files[i]);
     if(opt[O_S].set) print_sht(e_files[i]);
+    if(opt[O_s].set) print_symtbs(e_files[i]);
   }
 }
 

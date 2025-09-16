@@ -95,12 +95,9 @@ unsigned int iself(const e_ident_s *ident) {
 }
 
 
-
-
-
-const char *sht_name(char *buff, char *name) {
-  if(strlen(name) > SHT_FIELD_WIDTH)
-    sprintf(buff, "%.*s[...]", SHT_FIELD_WIDTH - 5, name);
+const char *trunc_name(char *buff, char *name, unsigned int width) {
+  if(strlen(name) > width)
+    sprintf(buff, "%.*s[...]", width, name);
   else
     sprintf(buff, "%s", name);
   free(name);
@@ -116,7 +113,6 @@ size_t elf_shtstrtb(const elf_s *e_file) {
   Elf32_Ehdr *hdr = e_file->header;
   Elf32_Shdr *sht = e_file->sht;
   return hdr->e_shstrndx >= SHN_LORESERVE ? sht[0].sh_link : hdr->e_shstrndx; 
-
 }
 
 
@@ -192,6 +188,76 @@ const char *sht_flags(char *buff, size_t flags) {
   if(flags & SHF_MASKPROC)            *buff++ = 'p';
   *buff = 0;
   return buff;
+}
+
+
+// symbol tables
+const char *elf_symtype(elf_sym_type_e type) {
+    switch (type) {
+        case STT_NOTYPE:
+            return "NOTYPE";
+        case STT_OBJECT:
+            return "OBJECT";
+        case STT_FUNC:
+            return "FUNC";
+        case STT_SECTION:
+            return "SECTION";
+        case STT_FILE:
+            return "FILE";
+        case STT_COMMON:
+            return "COMMON";
+        case STT_TLS:
+            return "TLS";
+        case STT_LOOS:
+            return "LOOS";
+        case STT_HIOS:
+            return "HIOS";
+        case STT_LOPROC:
+            return "LOPROC";
+        case STT_HIPROC:
+            return "HIPROC";
+        default:
+            return "UNKNOWN";
+   }
+}
+
+
+const char *elf_symbind(elf_sym_bind_e bind) {
+    switch (bind) {
+        case STB_LOCAL:
+            return "LOCAL";
+        case STB_GLOBAL:
+            return "GLOBAL";
+        case STB_WEAK:
+            return "WEAK";
+        case STB_LOOS:
+            return "LOOS";
+        case STB_HIOS:
+            return "HIOS";
+        case STB_LOPROC:
+            return "LOPROC";
+        case STB_HIPROC:
+            return "HIPROC";
+        default:
+            return "UNKNOWN";
+    }
+}
+
+
+
+const char *elf_symvis(elf_sym_vis_e vis) {
+    switch (vis) {
+        case STV_DEFAULT:
+            return "DEFAULT";
+        case STV_INTERNAL:
+            return "INTERNAL";
+        case STV_HIDDEN:
+            return "HIDDEN";
+        case STV_PROTECTED:
+            return "PROTECTED";
+        default:
+            return "UNKNOWN";
+    }
 }
 
 

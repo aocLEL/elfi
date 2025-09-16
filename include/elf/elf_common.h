@@ -47,7 +47,15 @@ typedef enum : Elf_Byte {
 #define Elf_Ehdr void
 #define Elf_Shdr void
 #define Elf_Phdr void
-#define Elf_Sym  void
+#define Elf_Sym  void 
+
+// custom wrapper for a symtb which enclose useful additional info
+typedef struct {
+  Elf_Sym *symbols;
+  size_t  entries;
+  size_t  symtb_sidx; // section index where this symtb is declared
+} elf_symtb_s;
+
 
 typedef struct {
   char            *name;
@@ -57,7 +65,7 @@ typedef struct {
   uint64_t        sh_num;
   Elf_Phdr        *pht;
   elf_class_e     type;
-  Elf_Sym         **symtbs;
+  elf_symtb_s     *symtbs;
 } elf_s;
 
 

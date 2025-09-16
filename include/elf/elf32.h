@@ -18,6 +18,7 @@ const Elf_Byte *get_from_strtb32(const elf_s *e_file, const Elf32_Shdr *s, size_
 // option functions
 void           print_header_info32(const elf_s *e_file);
 void           print_sht32(const elf_s *e_file);
+void           print_symtbs32(const elf_s *e_file);
 
 
 #endif

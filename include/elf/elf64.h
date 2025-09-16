@@ -18,5 +18,6 @@ const Elf_Byte *get_from_strtb64(const elf_s *e_file, const Elf64_Shdr *s, size_
 // option functions
 void           print_header_info64(const elf_s *e_file);
 void           print_sht64(const elf_s *e_file);
+void           print_symtbs64(const elf_s *e_file);
 
 #endif
